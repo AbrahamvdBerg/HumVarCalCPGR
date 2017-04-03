@@ -1,0 +1,58 @@
+#!/usr/bin/env nextflow
+ 
+params.in = "$baseDir/data/sample.fa"
+sequences = file(params.in)
+ 
+/*
+ * trims adaptor sequences
+ */
+process adapttrim {
+ 
+    input:
+    file 'input.fa' from sequences
+ 
+    output:
+    file 'seq_*' into records
+ 
+    """
+    awk '/^>/{f="seq_"++d} {print > f}' < input.fa
+    """
+ 
+}
+ 
+/*
+ * Quality trimming
+ */
+process qualtrim {
+ 
+    input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+ 
+/*
+ * Removal of very short leads
+ */
+result.subscribe { println it }
+
+/*
+ * De-duplication
+process dedup {
+ 
+    input:
+    file 'input.fa' from sequences
+ 
+    output:
+    file 'seq_*' into records
+ 
+    """
+    awk '/^>/{f="seq_"++d} {print > f}' < input.fa
+    """
+ 
+}
