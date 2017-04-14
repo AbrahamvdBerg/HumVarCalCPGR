@@ -25,7 +25,17 @@ process maptoref {
     output:
  
     """
-  
+    java -Xmx8G -jar picard.jar FastqToSam \
+    FASTQ=6484_snippet_1.fastq \ #first read file of pair
+    FASTQ2=6484_snippet_2.fastq \ #second read file of pair
+    OUTPUT=6484_snippet_fastqtosam.bam \
+    READ_GROUP_NAME=H0164.2 \ #required; changed from default of A
+    SAMPLE_NAME=NA12878 \ #required
+    LIBRARY_NAME=Solexa-272222 \ #required 
+    PLATFORM_UNIT=H0164ALXX140820.2 \ 
+    PLATFORM=illumina \ #recommended
+    SEQUENCING_CENTER=BI \ 
+    RUN_DATE=2014-08-20T00:00:00-0400
     """
  
 }
@@ -40,7 +50,13 @@ process markdup {
     output:
  
     """
-
+java -Xmx32G -jar picard.jar MarkDuplicates \
+INPUT=6747_snippet.bam \ #specify multiple times to merge 
+OUTPUT=6747_snippet_markduplicates.bam \
+METRICS_FILE=6747_snippet_markduplicates_metrics.txt \ 
+OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 \ #changed from default of 100
+CREATE_INDEX=true \ #optional
+TMP_DIR=/tmp
     """
 }
  
@@ -54,7 +70,14 @@ process baserecal {
     output:
     
     """
-
+    java -jar GenomeAnalysisTK.jar \ 
+    -T BaseRecalibrator \ 
+    -R reference.fa \ 
+    -I input_reads.bam \ 
+    -L 20 \ 
+    -knownSites dbsnp.vcf \ 
+    -knownSites gold_indels.vcf \ 
+    -o recal_data.table 
     """
     
 }
@@ -67,11 +90,24 @@ process varcal {
     input:
  
     output:
- 
+    raw_variants.vcf
+    
+    """
+    --genotyping_mode
+    -stand_emit_conf
+    -stand_call_conf
+    
+    java -jar GenomeAnalysisTK.jar \ 
+    -T HaplotypeCaller \ 
+    -R reference.fa \ 
+    -I preprocessed_reads.bam \  
+    -L 20 \ 
+    --genotyping_mode DISCOVERY \ 
+    -stand_emit_conf 10 \ 
+    -stand_call_conf 30 \ 
+    -o raw_variants.vcf 
     """
 
-    """
- 
 }
 
 /*
@@ -86,7 +122,9 @@ process genlike {
 
  
     """
-
+    java -jar GenomeAnalysisToolkit.jar -R human_g1k_v37_decoy.fasta 
+    -T CalculateGenotypePosteriors --supporting 1000G_phase3_v4_20130502.sites.vcf -ped trio.ped 
+    -V recalibratedVariants.vcf -o recalibratedVariants.postCGP.vcf
     """
 }
 
@@ -119,7 +157,10 @@ process filvar {
 
  
     """
-
+    java -jar $GATKjar -T VariantFiltration 
+    -R $bundlePath/b37/human_g1k_v37_decoy.fasta 
+    -V recalibratedVariants.postCGP.vcf -G_filter "GQ < 20.0" 
+    -G_filterName lowGQ -o recalibratedVariants.postCGP.Gfiltered.vcf
     """
 }
 
@@ -151,7 +192,11 @@ process annovar {
 
  
     """
-
+    java -jar $GATKjar -T VariantAnnotator 
+    -R $bundlePath/b37/human_g1k_v37_decoy.fasta 
+    -V recalibratedVariants.postCGP.Gfiltered.vcf 
+    -A PossibleDeNovo -ped trio.ped 
+    -o recalibratedVariants.postCGP.Gfiltered.deNovos.vcf
     """
 }
 
@@ -167,7 +212,13 @@ process evalcall {
 
  
     """
-
+    java -jar GenomeAnalysisTK.jar \
+-T VariantEval \
+-R reference.b37.fasta \
+-eval SampleVariants.vcf \
+-D dbsnp_138.b37.excluding_sites_after_129.vcf \
+-noEV -EV CompOverlap -EV IndelSummary -EV TiTvVariantEvaluator -EV CountVariants -EV MultiallelicSummary \
+-o SampleVariants_Evaluation.eval.grp
     """
 }
 
