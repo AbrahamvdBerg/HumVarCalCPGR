@@ -1,10 +1,14 @@
-Phase 1 - Preprosessing Raw reads -> Map to reference (BWA MEM) -> Mark duplicates (Picard) -> Base recallibration -> Analysis ready reads
-
-Phase 2 - Variant Discovery (Initial Variant Discovery) Analysis ready reads -> Var. Calling (HC -ERC GCVF) -> Genotype likelihoods
-
--> Joint Genotyping -> Raw variants: SNPs; Indels -> Filter Variants -> Analysis ready variants: SNPs; Indels
-
-Phase 3 - Callset refinement (Variant Annotation and Priotorization) Analysis ready variants: SNPs; Indels -> Refine genotypes -> Annotate variants -> Evaluate callset -> Look good? troubleshoot or use in project
+/*
+*Phase 1 - Preprosessing 
+*Raw reads -> Map to reference (BWA MEM) -> Mark duplicates (Picard) -> Base recallibration -> Analysis ready reads
+*
+*Phase 2 - Variant Discovery (Initial Variant Discovery) 
+*Analysis ready reads -> Var. Calling (HC -ERC GCVF) -> Genotype likelihoods
+*-> Joint Genotyping -> Raw variants: SNPs; Indels -> Filter Variants -> Analysis ready variants: SNPs; Indels
+*
+*Phase 3 - Callset refinement (Variant Annotation and Priotorization) 
+*Analysis ready variants: SNPs; Indels -> Refine genotypes -> Annotate variants -> Evaluate callset -> Look good? troubleshoot or use in project
+*/
 
 #!/usr/bin/env nextflow
  
@@ -12,9 +16,9 @@ params.in = "$baseDir/data/sample.fa"
 sequences = file(params.in)
  
 /*
- * trims adaptor sequences
+ * Map to reference (BWA MEM)
  */
-process adapttrim {
+process maptoref {
  
     input:
     file 'input.fa' from sequences
@@ -29,9 +33,9 @@ process adapttrim {
 }
  
 /*
- * Quality trimming
+ * Mark duplicates
  */
-process qualtrim {
+process markdup {
  
     input:
     file x from records
@@ -45,13 +49,25 @@ process qualtrim {
 }
  
 /*
- * Removal of very short leads
+ * Base recallibration
  */
-result.subscribe { println it }
+process baserecal { 
+
+    input:
+    file 'input.fa' from sequences
+    
+    output:
+    file 'seq_*' into records
+    
+    """
+    awk '/^>/{f="seq_"++d} {print > f}' < input.fa
+    """
+    
+}
 
 /*
- * De-duplication
-process dedup {
+ * Var. Calling (HC -ERC GCVF)
+process varcal {
  
     input:
     file 'input.fa' from sequences
@@ -63,4 +79,20 @@ process dedup {
     awk '/^>/{f="seq_"++d} {print > f}' < input.fa
     """
  
+}
+
+/*
+ * Genotype likelihoods
+ */
+process genlike {
+ 
+    input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
 }
