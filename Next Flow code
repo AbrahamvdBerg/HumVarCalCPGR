@@ -96,3 +96,86 @@ process genlike {
     cat $x | rev
     """
 }
+
+
+/*
+ * Joint Genotyping
+ */
+process jointgentype {
+  
+  input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+
+/*
+ * Filter Variants
+ */
+process filvar {
+  
+  input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+
+/*
+ * Refine genotypes
+ */
+process refgentype {
+  
+  input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+
+/*
+ * Annotate variants
+ */
+process annovar {
+  
+  input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+
+/*
+ * Evaluate callset
+ */
+process evalcall {
+  
+  input:
+    file x from records
+     
+    output:
+    stdout result
+ 
+    """
+    cat $x | rev
+    """
+}
+
+
