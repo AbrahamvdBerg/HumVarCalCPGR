@@ -159,6 +159,13 @@ process varcal {
     -stand_emit_conf 10 \ 
     -stand_call_conf 30 \ 
     -o raw_variants.vcf 
+    
+    java -jar GenomeAnalysisTK.jar 
+    -T HaplotypeCaller 
+    -R human_b37_20.fasta 
+    -I recalibrated.bam 
+    -o hc_variants.vcf 
+    -bamout bamout.bam
     """
 
 }
@@ -200,6 +207,7 @@ process jointgentype {
 
 /*
  * Filter Variants
+ *https://software.broadinstitute.org/gatk/documentation/article?id=2805
  */
 process filvar {
   
@@ -214,6 +222,30 @@ process filvar {
     -R $bundlePath/b37/human_g1k_v37_decoy.fasta 
     -V recalibratedVariants.postCGP.vcf -G_filter "GQ < 20.0" 
     -G_filterName lowGQ -o recalibratedVariants.postCGP.Gfiltered.vcf
+    
+    *2. Build the SNP recalibration model
+
+    java -jar GenomeAnalysisTK.jar \ 
+    -T VariantRecalibrator \ 
+    -R reference.fa \ 
+    -input raw_variants.vcf \ 
+    -resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap.vcf \ 
+    -resource:omni,known=false,training=true,truth=true,prior=12.0 omni.vcf \ 
+    -resource:1000G,known=false,training=true,truth=false,prior=10.0 1000G.vcf \ 
+    -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 dbsnp.vcf \ 
+    -an DP \ 
+    -an QD \ 
+    -an FS \ 
+    -an SOR \ 
+    -an MQ \
+    -an MQRankSum \ 
+    -an ReadPosRankSum \ 
+    -an InbreedingCoeff \
+    -mode SNP \ 
+    -tranche 100.0 -tranche 99.9 -tranche 99.0 -tranche 90.0 \ 
+    -recalFile recalibrate_SNP.recal \ 
+    -tranchesFile recalibrate_SNP.tranches \ 
+    -rscriptFile recalibrate_SNP_plots.R 
     """
 }
 
