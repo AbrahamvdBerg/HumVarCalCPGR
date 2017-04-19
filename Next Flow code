@@ -22,7 +22,7 @@ process maptoref {
  
     input:
  
-    output:
+    output: 6484_snippet_fastqtosam.bam
  
     """
     java -Xmx8G -jar picard.jar FastqToSam \
@@ -45,9 +45,9 @@ process maptoref {
  */
 process markdup {
  
-    input:
+    input: 6484_snippet_fastqtosam.bam
      
-    output:
+    output: 6747_snippet_markduplicates.bam
  
     """
 java -Xmx32G -jar picard.jar MarkDuplicates \
@@ -70,7 +70,28 @@ process baserecal {
     output:
     
     """
-    java -jar GenomeAnalysisTK.jar \ 
+    */ Code from slide show
+    *java -jar GenomeAnalysisTK.jar \ 
+    *-T BaseRecalibrator \ 
+    *-R reference.fa \ 
+    *-I input_reads.bam \ 
+    *-L 20 \ 
+    *-knownSites dbsnp.vcf \ 
+    *-knownSites gold_indels.vcf \ 
+    *-o recal_data.table 
+    */
+    
+    */Code from GATK Base quality score recallibration (BQSR) Methods and algorithms
+    *java -jar GenomeAnalysisTK.jar \
+   *-T PrintReads \
+   *-R reference.fasta \
+   *-I input.bam \
+   *-BQSR recalibration_report.grp \
+   */-o output.bam
+   
+   */Tutorial
+   */1. Analyze patterns of covariation in the sequence dataset
+   java -jar GenomeAnalysisTK.jar \ 
     -T BaseRecalibrator \ 
     -R reference.fa \ 
     -I input_reads.bam \ 
@@ -78,6 +99,38 @@ process baserecal {
     -knownSites dbsnp.vcf \ 
     -knownSites gold_indels.vcf \ 
     -o recal_data.table 
+    */Note that -L 20 is used here and in the next steps to restrict analysis to only 
+    *chromosome 20 in the b37 human genome reference build. To run against a different reference, 
+    */you may need to change the name of the contig according to the nomenclature used in your reference.
+    
+    */2. Do a second pass to analyze covariation remaining after recalibration
+    java -jar GenomeAnalysisTK.jar \ 
+    -T BaseRecalibrator \ 
+    -R reference.fa \ 
+    -I input_reads.bam \ 
+    -L 20 \ 
+    -knownSites dbsnp.vcf \ 
+    -knownSites gold_indels.vcf \ 
+    -BQSR recal_data.table \ 
+    -o post_recal_data.table
+    
+    */3. Generate before/after plots
+    java -jar GenomeAnalysisTK.jar \ 
+    -T AnalyzeCovariates \ 
+    -R reference.fa \ 
+    -L 20 \ 
+    -before recal_data.table \
+    -after post_recal_data.table \
+    -plots recalibration_plots.pdf
+    
+    */4. Apply the recalibration to your sequence data
+    java -jar GenomeAnalysisTK.jar \ 
+    -T PrintReads \ 
+    -R reference.fa \ 
+    -I input_reads.bam \ 
+    -L 20 \ 
+    -BQSR recal_data.table \ 
+    -o recal_reads.bam 
     """
     
 }
