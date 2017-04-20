@@ -4,7 +4,7 @@ Human Variant Calling Pipeline
 This pipeline consists of three phases in accordance with the GATK Best practices.
 The tools used for this pipeline are listed under Tools.
 
-Phase 1 - Preprosessing 
+Phase 1 - Pre-prosessing of raw data 
 Raw reads 
 -> Map to reference (BWA MEM) 
 -> Mark duplicates (Picard) 
